@@ -26,6 +26,8 @@ data_test = data_test.drop(columns=['Name'])
 
 # Embarked
 # Convert Embarked to 3 different features
+data_train['Embarked'] = data_train['Embarked'].fillna('Unknown')
+data_test['Embarked'] = data_test['Embarked'].fillna('Unknown')
 data_train = pd.get_dummies(data_train,columns=['Embarked'],dtype=int)
 data_test = pd.get_dummies(data_test,columns=['Embarked'],dtype=int)
 
@@ -35,7 +37,7 @@ data_train = data_train.drop(columns=['Ticket'])
 data_test = data_test.drop(columns=['Ticket'])
 
 # Age
-# Replace missing Ages with mean
+# Replace missing Ages with median
 data_train['Age'] = data_train['Age'].fillna(data_train['Age'].median())
 data_test['Age'] = data_test['Age'].fillna(data_train['Age'].median())
 
@@ -44,12 +46,18 @@ data_test['Age'] = data_test['Age'].fillna(data_train['Age'].median())
 data_train['Deck'] = data_train['Cabin'].str[0]
 data_train['Deck'] = data_train['Deck'].fillna('Unknown')
 data_train = data_train.drop(columns=['Cabin'])
-data_train = pd.get_dummies(data_train, columns=['Deck'],dtype=int)
 data_test['Deck'] = data_test['Cabin'].str[0]
 data_test['Deck'] = data_test['Deck'].fillna('Unknown')
 data_test = data_test.drop(columns=['Cabin'])
-data_test = pd.get_dummies(data_test, columns=['Deck'],dtype=int)
 
+# Map deck level to a number
+deck_map = {'A':8, 'B':7, 'C':6, 'D':5, 'E':4, 'F':3, 'G':2, 'T':1}
+data_train['DeckLevel'] = data_train['Deck'].map(deck_map).fillna(0)
+data_test['DeckLevel'] = data_test['Deck'].map(deck_map).fillna(0)
+data_train = data_train.drop(columns=['Deck'])
+data_test = data_test.drop(columns=['Deck'])
+
+# PassengerId
 # Remove PassengerId (model placed high importance on it)
 data_train = data_train.drop(columns=['PassengerId'])
 
@@ -58,7 +66,8 @@ data_train = data_train.drop(columns=['PassengerId'])
 X = data_train.drop(columns=['Survived'])
 Y = data_train['Survived']
 
-#print(data_train.head())
+
+print(data_train.head())
 #print(data_test.head())
 
 # Split into train and test
