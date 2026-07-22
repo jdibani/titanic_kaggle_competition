@@ -20,7 +20,24 @@ data_test['Male'] = (data_test['Sex'] == 'male').astype(int)
 data_test = data_test.drop(columns=['Sex'])
 
 # Name
-# Drop names for now, could include titles as individual features
+# Gets title from Name, then groups rare titles into single group (Rare)
+# One-hot encoding after, and drop Name
+
+# This also didnt perform well (Think carefully about features before adding them)
+"""data_train['Title'] = data_train['Name'].str.extract(r',\s*([^.]*)\.')[0]
+data_test['Title'] = data_test['Name'].str.extract(r',\s*([^.]*)\.')[0]
+
+title_map = {'Mlle': 'Miss','Ms': 'Miss','Mme': 'Mrs'}
+data_train['Title'] = data_train['Title'].replace(title_map)
+data_test['Title'] = data_test['Title'].replace(title_map)
+
+common_titles = ['Mr', 'Mrs', 'Miss', 'Master']
+data_train['Title'] = data_train['Title'].where(data_train['Title'].isin(common_titles),'Rare')
+data_test['Title'] = data_test['Title'].where(data_test['Title'].isin(common_titles),'Rare')
+
+data_train = pd.get_dummies(data_train,columns=['Title'],dtype=int)
+data_test = pd.get_dummies(data_test,columns=['Title'],dtype=int)"""
+
 data_train = data_train.drop(columns=['Name'])
 data_test = data_test.drop(columns=['Name'])
 
@@ -59,7 +76,24 @@ data_test = data_test.drop(columns=['Deck'])
 
 # PassengerId
 # Remove PassengerId (model placed high importance on it)
+test_ids = data_test['PassengerId']
 data_train = data_train.drop(columns=['PassengerId'])
+data_test = data_test.drop(columns=['PassengerId'])
+
+"""
+This currently made it perform worse, both with and without dropping 
+
+# Parch & Sibsp
+# Creates Familysize by combining Sibsp and Parch (+1 is person themselves)
+data_train['FamilySize'] = (data_train['SibSp'] +data_train['Parch'] +1)
+data_test['FamilySize'] = (data_test['SibSp'] +data_test['Parch'] +1)
+data_train['IsAlone'] = (data_train['FamilySize'] == 1).astype(int)
+data_test['IsAlone'] = (data_test['FamilySize'] == 1).astype(int)
+
+data_train = data_train.drop(columns=['Parch'])
+data_train = data_train.drop(columns=['SibSp'])
+data_test = data_test.drop(columns=['Parch'])
+data_test = data_test.drop(columns=['SibSp'])"""
 
 # Survived
 # Survived is predicted label
@@ -87,3 +121,25 @@ print(confusion_matrix(y_test, y_pred))
 # Feature importance
 importance = pd.DataFrame({'Feature': X_train.columns,'Importance': rfc.feature_importances_})
 print(importance.sort_values('Importance',ascending=False))
+
+data_test = data_test.reindex(columns=X.columns, fill_value=0)
+
+# Train final model on all training data
+rfc_final = RandomForestClassifier(
+    n_estimators=200,
+    max_depth=7,
+    min_samples_split=10,
+    random_state=42
+)
+
+rfc_final.fit(X, Y)
+
+# Predict Kaggle test set
+test_predictions = rfc_final.predict(data_test)
+
+submission = pd.DataFrame({
+    'PassengerId': test_ids,
+    'Survived': test_predictions
+})
+
+submission.to_csv('submission.csv', index=False)
