@@ -2,9 +2,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import (accuracy_score,classification_report,confusion_matrix)
+from sklearn.model_selection import cross_val_score
 
 # Load data
 data_train = pd.read_csv('data/train.csv')
@@ -102,16 +104,16 @@ Y = data_train['Survived']
 
 
 print(data_train.head())
-#print(data_test.head())
+#print(data_test.head())    
 
 # Split into train and test
 X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
 
 # Train Random Forest with best found parameters
-rfc = RandomForestClassifier(n_estimators=200,max_depth=7,min_samples_split=10,random_state=42)
+rfc = RandomForestClassifier(n_estimators=300,max_depth=10,max_features='sqrt',min_samples_leaf=1,min_samples_split=10,random_state=42)
 rfc.fit(X_train, y_train)
 
-# Predict and evaluate
+# Predict using randomforest
 y_pred = rfc.predict(X_test)
 
 print('accuracy score:', accuracy_score(y_test, y_pred))
@@ -124,22 +126,29 @@ print(importance.sort_values('Importance',ascending=False))
 
 data_test = data_test.reindex(columns=X.columns, fill_value=0)
 
-# Train final model on all training data
-rfc_final = RandomForestClassifier(
-    n_estimators=200,
-    max_depth=7,
-    min_samples_split=10,
-    random_state=42
-)
+"""param_grid = {
+    'n_estimators': [100, 200, 300, 500, 750, 1000],
+    'max_depth': [7, 10, 13, 16, None],
+    'min_samples_split': [2, 5, 10, 15],
+    'min_samples_leaf': [1, 2, 5],
+    'max_features': ['sqrt', 'log2', None]
+}"""
 
-rfc_final.fit(X, Y)
+best_rfc = RandomForestClassifier(n_estimators=300,max_depth=12,max_features='sqrt',min_samples_leaf=1,min_samples_split=10,random_state=42)
+
+#
+# SUBMISSION
+#
+
+
 
 # Predict Kaggle test set
-test_predictions = rfc_final.predict(data_test)
+best_rfc.fit(X, Y)
+test_predictions = best_rfc.predict(data_test)
+importance = pd.DataFrame({'Feature': X.columns,'Importance': best_rfc.feature_importances_})
 
-submission = pd.DataFrame({
-    'PassengerId': test_ids,
-    'Survived': test_predictions
-})
+print(importance.sort_values('Importance', ascending=False))
+
+submission = pd.DataFrame({'PassengerId': test_ids,'Survived': test_predictions})
 
 submission.to_csv('submission.csv', index=False)
